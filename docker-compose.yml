@@ -1,0 +1,87 @@
+services:
+
+  # ==========================================
+  # Serviço 1: Aplicação Go
+  # ==========================================
+  http-server-projeto-korp:
+    build: .
+    container_name: http-server-projeto-korp
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - korp-net
+
+  # ==========================================
+  # Serviço 2: Nginx (Reverse Proxy)
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-korp
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/http-server-projeto-korp.conf:/etc/nginx/conf.d/http-server-projeto-korp.conf:ro
+    networks:
+      - korp-net
+    depends_on:
+      - http-server-projeto-korp
+
+  # ==========================================
+  # Serviço 3: Prometheus (Coleta de Métricas)
+  # ==========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-korp
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    networks:
+      - korp-net
+    depends_on:
+      - http-server-projeto-korp
+
+  # ==========================================
+  # Serviço 4: Grafana (Dashboards)
+  # ==========================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-korp
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - korp-net
+    depends_on:
+      - prometheus
+
+# ==========================================
+# Volumes Persistentes
+# ==========================================
+volumes:
+  prometheus_data:
+  grafana_data:
+
+# ==========================================
+# Rede Interna
+# ==========================================
+networks:
+  korp-net:
+    driver: bridge

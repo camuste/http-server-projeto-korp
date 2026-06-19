@@ -1,0 +1,6 @@
+# Binários Go
+app/http-server-projeto-korp
+
+# Volumes Docker locais
+grafana/data/
+prometheus/data/

@@ -1,0 +1,105 @@
+---
+- name: Provisionamento completo — Projeto Korp
+  hosts: local
+  become: true
+
+  vars:
+    project_src: "/opt/http-server-projeto-korp"
+    docker_network: "korp-net"
+
+  tasks:
+
+    # ==========================================
+    # 1. Instalação do Docker
+    # ==========================================
+    - name: Instalar dependências do Docker
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: true
+
+    - name: Adicionar chave GPG oficial do Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Adicionar repositório oficial do Docker
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Instalar Docker Engine e plugin Compose
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Garantir que o serviço Docker está ativo
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    # ==========================================
+    # 2. Criação da Rede Docker
+    # ==========================================
+    - name: Criar rede Docker bridge korp-net
+      community.docker.docker_network:
+        name: "{{ docker_network }}"
+        driver: bridge
+        state: present
+
+    # ==========================================
+    # 3. Copiar arquivos do projeto para o host
+    # ==========================================
+    - name: Criar diretório do projeto
+      file:
+        path: "{{ project_src }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copiar arquivos do projeto
+      copy:
+        src: "../"
+        dest: "{{ project_src }}/"
+        mode: preserve
+
+    # ==========================================
+    # 4. Build e execução via Docker Compose
+    # ==========================================
+    - name: Executar docker compose up --build
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_src }}"
+        build: always
+        state: present
+      register: compose_result
+
+    - name: Aguardar serviço HTTP estar pronto
+      wait_for:
+        host: localhost
+        port: 80
+        delay: 5
+        timeout: 60
+
+    # ==========================================
+    # 5. Validação do serviço
+    # ==========================================
+    - name: Realizar requisição HTTP de validação
+      uri:
+        url: "http://localhost:80/projeto-korp"
+        method: GET
+        return_content: true
+        status_code: 200
+      register: http_response
+
+    - name: Exibir resposta do serviço no console
+      debug:
+        msg: "Resposta do http-server-projeto-korp: {{ http_response.content }}"
