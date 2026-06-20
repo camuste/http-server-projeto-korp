@@ -170,13 +170,22 @@ O dashboard **"Projeto Korp — HTTP Server"** é carregado automaticamente com 
 ## Decisões técnicas
 
 **Por que multi-stage build no Dockerfile?**
-O Stage 1 usa a imagem `golang` (~300 MB) apenas para compilar. O Stage 2 usa `alpine` (~5 MB) apenas para executar o binário. A imagem final fica com ~15 MB.
+O Stage 1 usa a imagem `golang` (~300 MB) apenas para compilar. O Stage 2 usa `alpine` (~5 MB) apenas para executar o binário. A imagem final fica com ~15 MB — mais rápida de baixar, menos superfície de ataque, mais próxima do que se usa em produção real.
 
 **Por que a porta 8080 não é exposta ao host?**
-O desafio exige isolamento: a aplicação Go só deve ser acessível internamente, via NGINX. O `expose` no Docker Compose torna a porta visível apenas dentro da rede `korp-net`.
+O desafio exige isolamento: a aplicação Go só deve ser acessível internamente, via NGINX. Usar `expose` em vez de `ports` no Docker Compose torna a porta visível apenas dentro da rede `korp-net`. É uma prática de segurança padrão em ambientes reais — nunca se expõe a aplicação diretamente.
+
+**Por que NGINX como proxy reverso?**
+Em produção, o NGINX é o ponto único de entrada. Ele pode fazer TLS (HTTPS), balanceamento de carga, rate limiting e cache — tudo sem tocar no código da aplicação. Mesmo nesse desafio simples, seguir esse padrão demonstra conhecimento de arquitetura real.
+
+**Por que `Counter` para requisições e `Gauge` para disponibilidade?**
+`Counter` só sobe — perfeito para contar eventos acumulados como requisições. `Gauge` sobe e desce — perfeito para representar estados como UP/DOWN. Usar o tipo errado quebraria as fórmulas do Prometheus (ex: `rate()` só funciona em `Counter`).
 
 **Por que `promauto` em vez de `prometheus.MustRegister`?**
 O `promauto` registra as métricas automaticamente na criação, eliminando a necessidade de um bloco `init()` separado — menos código com o mesmo resultado.
 
 **Por que provisioning automático no Grafana?**
-Os arquivos `datasources.yml`, `dashboards.yml` e o JSON do dashboard eliminam qualquer configuração manual. O ambiente fica 100% reproduzível — sobe idêntico em qualquer máquina.
+Os arquivos `datasources.yml`, `dashboards.yml` e o JSON do dashboard eliminam qualquer configuração manual. O ambiente fica 100% reproduzível — sobe idêntico em qualquer máquina. Isso é o que o desafio menciona explicitamente como bônus.
+
+**Por que Ansible e não um script shell?**
+Ansible é idempotente — pode ser executado múltiplas vezes sem efeitos colaterais. Um script shell rodado duas vezes pode duplicar entradas, falhar em condições já existentes ou deixar o sistema em estado inconsistente. Ansible verifica o estado atual antes de agir.
