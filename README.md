@@ -37,7 +37,8 @@ http-server-projeto-korp/
 │   ├── go.mod               # dependências Go
 │   └── main.go              # servidor HTTP + métricas Prometheus
 ├── nginx/
-│   └── http-server-projeto-korp.conf  # configuração do proxy reverso
+│   ├── http-server-projeto-korp.conf  # configuração do proxy reverso
+│   └── default.conf                   # neutraliza o default.conf interno do nginx
 ├── prometheus/
 │   └── prometheus.yml       # configuração de coleta de métricas
 ├── grafana/
@@ -178,4 +179,4 @@ O desafio exige isolamento: a aplicação Go só deve ser acessível internament
 O `promauto` registra as métricas automaticamente na criação, eliminando a necessidade de um bloco `init()` separado — menos código com o mesmo resultado.
 
 **Por que provisioning automático no Grafana?**
-Os arquivos `datasources.yml`, `dashboards.
+Os arquivos `datasources.yml`, `dashboards.yml` e o JSON do dashboard eliminam qualquer configuração manual. O ambiente fica 100% reproduzível — sobe idêntico em qualquer máquina.
