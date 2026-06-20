@@ -43,9 +43,9 @@ http-server-projeto-korp/
 ├── grafana/
 │   ├── provisioning/
 │   │   ├── datasources/
-│   │   │   └── datasource.yml   # conecta Grafana ao Prometheus
+│   │   │   └── datasources.yml  # conecta Grafana ao Prometheus
 │   │   └── dashboards/
-│   │       └── dashboard.yml    # aponta para os arquivos de dashboard
+│   │       └── dashboards.yml   # aponta para os arquivos de dashboard
 │   └── dashboards/
 │       └── http-server-projeto-korp-dashboard.json  # dashboard pronto
 ├── ansible/
@@ -125,8 +125,9 @@ curl http://localhost:80/projeto-korp
 ```
 
 ### Métricas expostas
+A porta 8080 não é publicada no host (de propósito — só o NGINX é exposto), então o `/metrics` é acessado pela mesma porta 80, via proxy:
 ```bash
-curl http://localhost:8080/metrics
+curl http://localhost/metrics
 ```
 
 ### Prometheus
@@ -177,4 +178,4 @@ O desafio exige isolamento: a aplicação Go só deve ser acessível internament
 O `promauto` registra as métricas automaticamente na criação, eliminando a necessidade de um bloco `init()` separado — menos código com o mesmo resultado.
 
 **Por que provisioning automático no Grafana?**
-Os arquivos `datasource.yml`, `dashboard.yml` e o JSON do dashboard eliminam qualquer configuração manual. O ambiente fica 100% reproduzível — sobe idêntico em qualquer máquina.
+Os arquivos `datasources.yml`, `dashboards.
