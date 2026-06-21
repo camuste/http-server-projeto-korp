@@ -4,6 +4,12 @@ Serviço HTTP em Go com monitoramento via Prometheus e Grafana, proxy reverso co
 
 ---
 
+## Demonstração
+
+![Demonstração do projeto](demonstracao-korp.gif)
+
+---
+
 ## Arquitetura
 
 ```
